@@ -1,0 +1,459 @@
+<apex:page controller="OpportunityPartEditController" id="OpportunityLineItemEdit" tabStyle="Opportunity">
+
+<script>
+    function openNewWindow(newPageURL)
+    {
+        window.open(newPageURL, "_blank","height=500px width=300px " +
+            "resizable=yes scrollbars=yes menubar=yes location=yes status=yes");
+    }
+</script>
+    <apex:form id="pageForm" >
+         <apex:pageMessages id="pagemessages"  />         
+         <apex:sectionHeader title="Edit Parts" />  
+         <apex:PageBlock title="Part List" id="partListPageBlock">
+            <apex:outputPanel id="partListTable">
+            
+                <apex:dataTable value="{!singlePageOppPartList}" var="part" headerClass="headerRow" rowClasses="dataRow" styleClass="list">                            
+                    <apex:column style="width:25px">
+                        <apex:facet name="header">Delete</apex:facet>
+                        <apex:commandLink style="border:0px" action="{!deleteLineItems}" >
+                             <apex:param name="deleteLI" value="{!part.index}" assignTo="{!deleteLI}" />
+                        </apex:commandLink>
+                    </apex:column>            
+                                            
+                    
+                <apex:column style="width:200px">
+                                    <apex:facet name="header">
+                             <apex:commandLink value="Product Description" action="{!doOppPartListSort}" oncomplete="displayTextArea();" rerender="partListTable">
+                                 <apex:param name="oppPartListSortField" value="Description" assignTo="{!oppPartListSortField}"/> 
+                             </apex:commandLink>
+                            </apex:facet>
+                                    </apex:column> 
+                    
+                    
+                  
+                   
+                 
+                    <apex:column style="width:200px">
+                            <apex:facet name="header">
+                             <apex:commandLink value="Product Description" action="{!doOppPartListSort}" oncomplete="displayTextArea();" rerender="partListTable">
+                                 <apex:param name="oppPartListSortField" value="Description" assignTo="{!oppPartListSortField}"/> 
+                             </apex:commandLink>
+                            </apex:facet>
+                            <apex:inputField value="{!part.oppLineItem.Description}" onkeypress="return noSaveOnEnter(event);" style="width:150px" />
+                            <apex:outputText value="{!part.oppLineItem.Description}" style="width:200px" />                            
+                    </apex:column>  
+                      
+                    
+
+                   
+                    
+                                                       
+                   
+                     
+                    
+               <!--     <apex:column style="width:300px">
+                            <apex:facet name="header">Product Line</apex:facet>
+                            <apex:inputTextarea rows="1" style="width:300px" id="decodeText" value="{!part.oppLineItem.Product_Line__c}" />
+                    </apex:column>  --> 
+                </apex:dataTable>
+                
+                <table width="100%">
+                    <tr>
+                        <td width="25%" align="left">
+                            Showing records &nbsp; <apex:outputText id="oppPartListStartRowNbr" value="{!oppPartListFirstRecordNbr}" /> to&nbsp; <apex:outputText id="oppPartListEndRowNbr" value="{!oppPartListLastRecordNbr}" />
+                            &nbsp;of&nbsp; <apex:outputText id="oppPartListTotalRecords" value="{!oppPartListTotalRecordCount}" />&nbsp;Records
+                        </td>
+                        <td width="25%" align="right">
+                            <apex:commandLink action="{!oppPartListPreviousPage}" rendered="{!oppPartListShowPrevPageLink}" value="Previous Page" dir="RTL">  
+                            </apex:commandLink>
+                            &nbsp;
+                        </td>
+                        <td width="25%" align="left">                               
+                            <apex:commandLink action="{!oppPartListNextPage}" rendered="{!oppPartListShowNextPageLink}" value="Next Page" >
+                            </apex:commandLink>
+                        </td>
+                        <td width="25%" align="right">
+                            <apex:commandButton action="{!jumpToOppPartListPage}" value="Jump To Page" />
+                            <apex:inputText id="oppPartJumpToPage" onkeypress="return noSaveOnEnter(event);" value="{!oppPartListJumpToPage}" style="width:20px" />
+                        </td>
+                    </tr>                
+                </table>                
+            </apex:outputPanel>                
+            <apex:PageBlockButtons > 
+               <apex:commandButton action="{!SaveLineItems}" value="Save and More">                
+
+                </apex:commandButton>
+                <apex:commandButton action="{!gotoOpportunity}" value="Cancel" immediate="true"/> 
+                <apex:commandButton action="{!EditAll}" value="Edit All" />                   
+            </apex:PageBlockButtons>                                                   
+         </apex:PageBlock>
+
+        <apex:actionRegion >
+         <apex:PageBlock id="searchCriteriaPageBlock">
+            <table>
+            <tr>
+            <td colspan="3">
+            <apex:outputPanel id="searchCriteriaChoice">
+                <table cellspacing="5">
+                <tr>
+                    <apex:outputText value="Choose a Search Method" />
+                <td>
+                </td>
+                <td>
+                <apex:selectList id="chooseSearch" size="1" value="{!method}">
+                    <apex:selectOption itemValue="partNbr" itemLabel="By Product Name/Part Number"/>
+                    <apex:selectOption itemValue="advanced" itemLabel="Advanced Search"/>
+                    <apex:selectOption itemValue="proposal" itemLabel="Add Proposal Parts"/>
+                    <apex:actionSupport event="onchange" action="{!setSelectedSearchMethod}" rerender="searchMethod,searchResultsTable"/>                                      
+                </apex:selectList>
+                </td>
+                </tr>
+                </table>            
+            </apex:outputPanel>
+            </td>
+            </tr>
+            <tr>
+            <td>
+            <apex:outputPanel id="searchMethod" styleClass="searchFilterFieldsHolder">
+            <apex:outputPanel rendered="{!partNbrMethod}">                               
+                 <table class="searchFilterFields">
+                    <tr>
+                        <td colspan="2">
+                            <h4>Search By Part Number</h4>&nbsp;&nbsp;
+                            <apex:actionStatus stopText="" id="loadingResults1">
+                                <apex:facet name="start">
+                                </apex:facet>
+                            </apex:actionStatus>                            
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <apex:inputTextarea id="searchTextArea" rows="5" style="width:300px" value="{!searchString}"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <apex:commandButton action="{!doPartNbrSearch}" value="Search" rerender="searchResultsTable,pagemessages"  status="loadingResults1"/>
+                            <apex:commandButton action="{!clearPartNbrSearch}" value="Clear" rerender="searchMethod" />                                          
+                        </td>
+                    </tr>           
+                 </table>
+            </apex:outputPanel>  
+            <apex:outputPanel rendered="{!advancedMethod}">                                  
+                 <table class="searchFilterFields">
+                    <tr>
+                        <td>
+                            <h4>Advanced Search</h4>&nbsp;&nbsp;
+                            <apex:actionStatus stopText="" id="loadingResults2">
+                                <apex:facet name="start">
+                                </apex:facet>
+                            </apex:actionStatus>             
+                        </td>
+                    </tr>
+                    <tr>
+                    <td>
+                    <table>
+                        <tr>
+                            <td>
+                                <table>
+                                    <tr>
+                                        <td colspan="2">
+                                            Search For Text In Specific Fields
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td colspan="2">
+                                            Search For Text In All Fields
+                                        </td>                                                                               
+                                    </tr>                    
+                                    <tr>
+                                        <td>
+                                            <apex:outputText value="Part Nbr: " />
+                                        </td>
+                                        <td>
+                                            <apex:inputText id="searchPartNumber" value="{!searchPartNumber}" onkeypress="return noSaveOnEnter(event);"/>
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td>
+                                            <apex:outputText value="Search All Fields For: " />
+                                        </td>
+                                        <td>
+                                            <apex:inputText id="searchSOSL" value="{!searchSOSL}" onkeypress="return noSaveOnEnter(event);"/>
+                                        </td>                                       
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <apex:outputText value="Part Description: " />
+                                        </td>
+                                        <td>
+                                            <apex:inputText id="searchPartDesc" value="{!searchPartDesc}" onkeypress="return noSaveOnEnter(event);"/>
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>                                                                                                                       
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <apex:outputText value="GPL: " />
+                                        </td>
+                                        <td>
+                                            <apex:inputText id="searchGPL" value="{!searchGPL}" onkeypress="return noSaveOnEnter(event);"/>
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>                                       
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <apex:outputText value="GPL Name: " />
+                                        </td>
+                                        <td>
+                                            <apex:inputText id="searchGPLDesc" value="{!searchGPLDesc}" onkeypress="return noSaveOnEnter(event);"/>
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>                                       
+                                    </tr>                                   
+                                    <tr>
+                                        <td colspan="2">
+                                            <apex:commandButton action="{!doAdvancedSearch}" value="Search" rerender="searchResultsTable,pagemessages" status="loadingResults2"/>
+                                            <apex:commandButton action="{!clearAdvancedSearch}" value="Clear" rerender="searchMethod" />                                            
+                                        </td>
+                                        <td>
+                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        </td>
+                                        <td colspan="2">
+                                            <apex:commandButton action="{!doSOSLSearch}" value="Search All" rerender="searchResultsTable,pagemessages" status="loadingResults2"/>                                                                                 
+                                        </td>                                                                               
+                                   </tr>                                    
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    </td>
+                    </tr>                                                                                      
+          
+                 </table>
+            </apex:outputPanel>
+            <apex:outputPanel rendered="{!proposalMethod}">                                  
+                 <table class="searchFilterFields"> 
+                    <tr>
+                        <td colspan="2">
+                            <h4>Add Proposal Parts</h4>&nbsp;&nbsp;
+                            <apex:actionStatus stopText="" id="loadingResults3">
+                                <apex:facet name="start">
+                                </apex:facet>
+                            </apex:actionStatus> 
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <apex:outputText value="How Many?: " />
+                        </td>
+                        <td>
+                            <apex:inputText id="nbrProposalParts" value="{!nbrProposalParts}" style="width:50px" onkeypress="return noSaveOnEnter(event);"/>
+                        </td>
+                    </tr>   
+                    <tr>
+                        <td colspan="2">
+                            <apex:commandButton action="{!doAddProposalParts}" value="Add" status="loadingResults3" reRender="partListTable"/>
+                            &nbsp;
+
+                            <apex:commandButton action="{!clearAddProposalParts}" value="Clear" rerender="searchMethod" />                                           
+                        </td>
+                    </tr>       
+                 </table>
+            </apex:outputPanel>                                 
+            </apex:outputPanel>
+            </td>
+            <td width="15px">
+            </td>
+            <td style="vertical-align:middle;">
+            <apex:outputPanel id="searchExplanationPanel">
+                <div style="border:1px solid black;float:left;width:400px;">
+                <table width="100%">
+                    <tr>
+                    <td>
+                        <ul>
+                            <li>
+                                <span style="font-weight:bold;">Search By Part Number</span> - Used for a known list of parts.<br />
+                                Have a comma or a new line separate each part number.
+                            </li>
+                            <li>
+                                <span style="font-weight:bold;">Advanced Search</span> - Search for parts based on criteria. <br />
+                                In the field specific search, use * or % as a wild card. <br />  
+                                <span style="text-decoration:underline;">Note:</span> Search In All Fields will bring back parts which <br /> 
+                                contain the search text in any field, even fields which <br />
+                                are not visible in search results.
+                            </li>
+                            <li>
+                                <span style="font-weight:bold;">Add Proposal Parts</span> - Use to add parts not yet in the TE <br />
+                                system or currently in development.
+                            </li>
+                        </ul>
+                    </td>
+                    </tr>
+                </table>
+                </div>
+            </apex:outputPanel>
+            </td>
+            </tr>
+            </table>
+         </apex:PageBlock>
+         </apex:actionRegion>
+         
+         <apex:actionRegion >
+         <apex:PageBlock title="Search Results" id="searchResultsPageBlock">
+            <apex:outputPanel id="searchResultsTable">
+                <apex:dataTable value="{!singlePageSelectablePartList}" var="result" headerClass="headerRow" rowClasses="dataRow" styleClass="list">
+                    <apex:column style="width:20px">
+                        <apex:facet name="header" >
+                            <apex:inputCheckbox id="headerCheckbox"> 
+                                <apex:actionSupport event="onclick" onsubmit="checkAllForAddition(this);" rerender="searchResultsTable"/> 
+                            </apex:inputCheckbox>                       
+                        </apex:facet>
+                        <apex:inputCheckbox value="{!result.selected}" id="checkAddPart">
+                            <apex:actionSupport event="onclick" rerender="selectedItems"/>                         
+                        </apex:inputCheckbox>
+                    </apex:column>              
+                    <apex:column >
+                        <apex:facet name="header">
+                         <apex:commandLink value="{!$ObjectType.Product2.fields.Name.label}" action="{!doSearchResultsSort}" rerender="searchResultsTable">
+                             <apex:param name="searchResultsSortField" value="Name" assignTo="{!searchResultsSortField}"/> 
+                         </apex:commandLink>                         
+                        </apex:facet>
+                        <apex:outputText value="{!result.part.Name}" />
+                    </apex:column>
+                    
+                  
+                    
+                    
+                    <apex:column >
+                        <apex:facet name="header">
+                         <apex:commandLink value="{!$ObjectType.Product2.fields.Description.label}" action="{!doSearchResultsSort}" rerender="searchResultsTable">
+                             <apex:param name="searchResultsSortField" value="Description" assignTo="{!searchResultsSortField}"/> 
+                         </apex:commandLink>                         
+                        </apex:facet>
+                        <apex:outputText value="{!result.part.Description}" style="width:250px"/>
+                    </apex:column>
+                   
+                                      
+                                          
+                </apex:dataTable>
+
+                <table width="100%">
+                    <tr>
+                        <td width="25%" align="left">
+                            Showing records &nbsp; <apex:outputText id="searchResultsStartRowNbr" value="{!searchResultsFirstRecordNbr}" /> to&nbsp; <apex:outputText id="searchResultsEndRowNbr" value="{!searchResultsLastRecordNbr}" />
+                            &nbsp;of&nbsp; <apex:outputText id="searchResultsTotalRecords" value="{!searchResultsTotalRecordCount}" />&nbsp;Records
+                            <br />(<apex:outputText id="selectedItems" value="{!nbrSelected}" /> Parts Already Selected)
+                        </td>
+                        <td width="25%" align="right">
+                            <apex:commandLink action="{!searchResultsPreviousPage}" rendered="{!searchResultsShowPrevPageLink}" value="Previous Page" dir="RTL" rerender="searchResultsTable,pagemessages" oncomplete="uncheckHeaderCB();">
+                            </apex:commandLink>                         
+                            &nbsp;
+                        </td>
+                        <td width="25%" align="left">                               
+                            <apex:commandLink action="{!searchResultsNextPage}" rendered="{!searchResultsShowNextPageLink}" value="Next Page" rerender="searchResultsTable,pagemessages" oncomplete="uncheckHeaderCB();">
+                            </apex:commandLink>                         
+                        </td>
+                        <td width="25%" align="right">
+                            <apex:commandButton action="{!jumpToSearchResultsPage}" value="Jump To Page" rerender="searchResultsTable,pagemessages" oncomplete="uncheckHeaderCB();"/>
+                            <apex:inputText id="searchResultsJumpToPage" onkeypress="return noSaveOnEnter(event);" value="{!searchResultsJumpToPage}" style="width:20px" />
+                        </td>
+                    </tr>                
+                </table>
+                                                
+            </apex:outputPanel>
+            <apex:PageBlockButtons > 
+                <apex:commandButton action="{!addResultToPartList}" value="Add" onclick="uncheckHeaderCB()"/>  
+                <apex:commandButton action="{!selectAllCheckboxes}" value="Select All" rerender="searchResultsTable" />
+                <apex:commandButton action="{!clearAllCheckboxes}" value="Clear All" rerender="searchResultsTable" oncomplete="uncheckHeaderCB()"/> 
+               
+               <apex:commandButton action="{!METHOD}" value="Add New Product" id="theButton" onClick="launchWindow();"/>
+
+            </apex:PageBlockButtons>    
+         </apex:PageBlock>   
+         </apex:actionRegion>    
+
+        <script> 
+        function launchWindow()
+{
+window.open("/apex/AddNewProduct");
+}
+
+        window.onload = new function() { displayTextArea(); };
+        
+        function checkAllForAddition(cb)  
+        {  
+            var inputElem = document.getElementsByTagName("input");  
+            for(var i=0; i<inputElem.length; i++)  
+            {  
+                if(inputElem[i].id.indexOf("checkAddPart")!=-1)
+                {
+                    inputElem[i].checked = cb.checked;
+                }  
+            }  
+        }
+
+        function uncheckHeaderCB()  
+        {  
+            var inputElem = document.getElementsByTagName("input");  
+            for(var i=0; i<inputElem.length; i++)  
+            {  
+                if(inputElem[i].id.indexOf("headerCheckbox")!=-1)
+                {
+                    inputElem[i].checked = false;
+                }  
+            }  
+        }
+        
+        function displayTextArea()  
+        {
+            Encoder.EncodeType = "entity";      
+
+            var inputTxtAreas = document.getElementsByTagName("textarea");  
+            for(var j=0; j<inputTxtAreas.length; j++)  
+            {  
+                if(inputTxtAreas[j].id.indexOf("decodeText")!=-1)
+                {
+                    inputTxtAreas[j].innerHTML = Encoder.htmlDecode(inputTxtAreas[j].innerHTML);                
+                }  
+            }             
+        }                       
+        
+       function noSaveOnEnter(ev)  
+       {  
+        if (window.event && window.event.keyCode == 13 || ev.which == 13) {  
+             return false;  
+          } else {  
+               return true;  
+         }  
+       }                      
+        </script> 
+
+
+    </apex:form>
+</apex:page>

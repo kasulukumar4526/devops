@@ -1,0 +1,24 @@
+<apex:page standardController="OppProdNew__c">
+ 
+
+<apex:form lang="test">
+
+  <apex:pageBlock title="{!OppProdNew__c.Baseprod__r.name} for {!OppProdNew__c.Opp_New__r.name}">
+
+    <apex:pageBlockSection title="SalesType Details" columns="1">
+    <apex:outputField value="{!OppProdNew__c.Opp_New__c}"/>
+      <apex:outputField value="{!OppProdNew__c.Baseprod__c}"/>
+      <apex:inputField value="{!OppProdNew__c.Quantity__c}"/>
+      
+      
+    </apex:pageBlockSection>
+        
+    <apex:pageBlockButtons location="bottom">
+      <apex:commandButton action="{! quickSave }" value="Save"/>
+    </apex:pageBlockButtons>
+    
+  </apex:pageBlock>
+
+</apex:form>
+
+</apex:page>

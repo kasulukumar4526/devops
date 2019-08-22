@@ -1,0 +1,9 @@
+<apex:page StandardController="Opp_New__c">
+  <apex:sectionHeader title="Position: {!Opp_New__c.Name}"/>
+  <apex:pageBlock title="Employment Websites">
+      <apex:pageBlockTable value="{!Opp_New__c.OppProdNews__r}" var="jobPost">
+          <apex:column value="{!jobPost.Baseprod__r.Name}"/>
+          
+      </apex:pageBlockTable>
+  </apex:pageBlock>
+</apex:page>
